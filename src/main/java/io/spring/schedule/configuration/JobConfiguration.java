@@ -1,5 +1,6 @@
 package io.spring.schedule.configuration;
 
+import io.spring.schedule.domain.Quote;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.*;
@@ -22,6 +23,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -41,6 +43,9 @@ public class JobConfiguration extends DefaultBatchConfigurer implements Applicat
     private JobRegistry jobRegistry;
     @Autowired
     private JobLauncher jobLauncher;
+    @Autowired
+    private RestTemplate restTemplate;
+
 
     private ApplicationContext applicationContext;
 
@@ -85,9 +90,11 @@ public class JobConfiguration extends DefaultBatchConfigurer implements Applicat
     public Tasklet tasklet(@Value("#{jobParameters['name']}") String name) {
         return ((stepContribution, chunkContext) -> {
             SimpleDateFormat formmater = new SimpleDateFormat("hh:mm:ss");
-
-            System.out.println(String.format(">> The job ran for %s, %s...",
-                    name, formmater.format(new Date())));
+            Quote quote = restTemplate.getForObject(
+                    "https://gturnquist-quoters.cfapps.io/api/random", Quote.class
+            );
+            System.out.println(String.format(">> Random quote: %s, %s...",
+                    quote.toString(), formmater.format(new Date())));
             Thread.sleep(1000);
             return RepeatStatus.CONTINUABLE;
         });
